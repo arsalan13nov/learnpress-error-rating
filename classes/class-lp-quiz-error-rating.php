@@ -1,43 +1,68 @@
 <?php
 class LearnPress_Quiz_Error_Rating {
-	/**
-	 * The unique identifier of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   protected
-	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
-	 */
-	protected $plugin_name;
-
-	/**
-	 * The current version of the plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   protected
-	 * @var      string    $version    The current version of the plugin.
-	 */
-	protected $version;
 
 	/**
 	 * Define the core functionality of the plugin.
 	 *
 	 * @since    1.0.0
 	 */
+
 	public function __construct() {
 
-		$this->plugin_name = 'learnpress-error-rating';
-		$this->version = '1.0.0';
+		add_action( 'the_post', array( $this, 'add_answer_error_rating' ), 10 );
+		add_action( 'learn-press/user/quiz-finished', array( $this, 'add_answer_error_rating_last_question' ), 12, 3 );	
+		add_action( 'wp_enqueue_scripts', array( $this, 'lp_custom_style' ), 1001 );
+		add_action( 'learn-press/quiz/after-complete-button', array( $this, 'hide_complete_btn' ) );
+		
 	}
 
-	/**
-	 * Hooks into learnpress navigation and quiz hooks to add error_rating.
+	public function lp_custom_style() {
+        /**
+         * enqueue admin css
+         */
+        wp_enqueue_style( 'lp_custom_style', LP_ERR_ASSETS_URL . 'lp-custom-css.css', null, VERSION, null );
+    }
+
+    /**
+	 * Check if current Question is last or not
 	 *
 	 * @since    1.0.0
 	 */
-	public function run(){
-		add_action( 'learn_press_request_handler_lp-nav-question-quiz', array( $this, 'add_answer_error_rating' ), 11 );
-		add_action( 'learn-press/user/quiz-finished', array( $this, 'add_answer_error_rating_last_question' ), 11, 3 );
-	}
+    public function check_last_question( $quiz ) { 
+    	
+    	if( $quiz ) {
+    		// Get current question
+			$current_question_id = $quiz->get_viewing_question( 'id' );
+			$next_id 			 = $quiz->get_next_question( $current_question_id );
+
+			if( $next_id == '' )
+				return true;
+			else
+				return false;
+    	}
+    }
+
+    /**
+	 * Hides Complete Quiz button unless its a last Q.
+	 *
+	 * @since    1.0.0
+	 */
+    public function hide_complete_btn() {
+
+    	$quiz                = LP_Global::course_item_quiz();
+		$is_last_q 			= $this->check_last_question( $quiz );
+
+		// If last Q then display Complete button
+		if( $is_last_q ) {
+        ?>
+        <style type="text/css">
+			.complete-quiz {
+			    display: inline-block !important;
+			}
+		</style>
+        <?php
+    	}
+    }
 
 	/**
 	 * Hooks into learnpress navigation and quiz hooks to add error_rating.
@@ -45,13 +70,13 @@ class LearnPress_Quiz_Error_Rating {
 	 * @since    1.0.0
 	 */
 	public function add_answer_error_rating_last_question( $quiz_id, $course_id, $obj_id ){
-
+		
 		// Get quiz data object
 		$quiz_data = $this->get_quiz_data( $quiz_id, $course_id );
-		$current_question_id = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), '_current_question', true );
+		$current_question_id = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), 'last_question_id', true );
 		
 		// Add error_rating for this final quiz
-		add_error_rating_meta( $current_question_id, $quiz_data );
+		$this->add_error_rating_meta( $current_question_id, $quiz_data );
 	}
 
 	public function get_quiz_data( $quiz_id, $course_id ) {
@@ -74,17 +99,26 @@ class LearnPress_Quiz_Error_Rating {
 	 * @since    1.0.0
 	 */
 	public function add_answer_error_rating() {
-	
 		// Get nave type and course,quiz & question IDs
-		$nav_type = LP_Request::get_string( 'nav-type' );
-
-		$course_id   = LP_Request::get_int( 'course-id' );
-		$quiz_id     = LP_Request::get_int( 'quiz-id' );
-		$question_id = LP_Request::get_int( 'question-id' );
-
-		// Get quiz data object
-		$quiz_data = $this->get_quiz_data( $quiz_id, $course_id );
+		$quiz        = LP_Global::course_item_quiz();
+		$course_id   =  $quiz->get_course_id();
+		$quiz_id     = $quiz->get_id();
+		echo 'QQQ ='.$question_id = $quiz->get_viewing_question( 'id' );
 		
+			
+		if( $course_id && $quiz_id )
+			$quiz_data = $this->get_quiz_data( $quiz_id, $course_id );
+		else
+			return false;
+
+		// Check for last Q
+		$quiz                = LP_Global::course_item_quiz();
+		$is_last_q 			= $this->check_last_question( $quiz );
+		
+		if( $is_last_q ){
+			learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), 'last_question_id',  $question_id );
+		}
+
 		// Pass quiz data to meta update function
 		$this->add_error_rating_meta( $question_id, $quiz_data );
 		
@@ -100,16 +134,16 @@ class LearnPress_Quiz_Error_Rating {
 		
 		global $wpdb;
 		$query = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix."learnpress_question_answers WHERE question_id = %d", $question_id );
-		//$query = 'Select * from '.$wpdb->prefix.'learnpress_question_answers where question_id = '.$question_id;
 		
 		$question_answers 			= $wpdb->get_results( $query, 'ARRAY_A' );
 		$toatl_amswers				= count( $question_answers );
-		$correct_ans_priority 		= 0;
-		$_error_rating 				= '';
+		$correct_ans_priority = $user_ans_priority	= 0;
+		$_error_rating 				= 0;
 		$priority_difference 		= 0;
-		$error_rating_data 			= '';
+		$error_rating_data 			= array();
 		$error_rate_meta 			= array();
 		$error_rate_set 			= false;
+
 
 		// Loop through all answers of a question
 		foreach( $question_answers as $q_answer ){
@@ -117,7 +151,7 @@ class LearnPress_Quiz_Error_Rating {
 			$ans_priority = $q_answer['answer_order'];
 			$answer_data = maybe_unserialize( $q_answer['answer_data'] );
 			
-			$user_answer = $quiz_data->get_question_answer( $question_id );
+			$user_answer = $_REQUEST['learn-press-question-'.$question_id];
 			
 			if( $answer_data['value'] == $user_answer ) {
 				$user_ans_priority = $ans_priority;
@@ -132,24 +166,25 @@ class LearnPress_Quiz_Error_Rating {
 				$error_rate_set = true;
 			}	
 		}
-
+		
 		if( $error_rate_set ) {
 			
+			$error_rate_meta_array = array();
 			$error_rate_meta_array = learn_press_get_user_item_meta(  $quiz_data->get_user_item_id(), '_error_rating', true );
 
 			$error_rating_data[ $question_id ] = $_error_rating;
-
-			if( !empty( $error_rate_meta_array ) ){
-				$error_rate_meta = $error_rating_data + $error_rate_meta_array;
+	
+			if( is_array( $error_rate_meta_array ) && !empty( $error_rate_meta_array ) ){
+				$error_rate_meta_array[ $question_id ] = $_error_rating;
+				$error_rate_meta = $error_rate_meta_array;
 			} else {
 				$error_rate_meta = $error_rating_data;
 			}
 			
-			// print_r( $error_rate_meta_array ); 
-			// print_r( $error_rate_meta ); 
-			// print_r( $error_rating_data );	exit;
-			ksort($error_rate_meta);			
-			learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), '_error_rating',  $error_rate_meta );
+			if( is_array( $error_rate_meta ) ) {
+				ksort($error_rate_meta);			
+				learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), '_error_rating',  $error_rate_meta );
+			}			
 		}
 	}
 

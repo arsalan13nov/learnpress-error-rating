@@ -1,0 +1,11 @@
+.answer-options {
+    columns: 3;
+    -webkit-columns: 3;
+    -moz-columns: 3;
+     list-style: none; 
+     margin: 0; 
+     padding: 0; 
+}
+.skip-question, .complete-quiz {
+    display: none;
+}
