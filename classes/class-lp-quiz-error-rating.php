@@ -17,10 +17,14 @@ class LearnPress_Quiz_Error_Rating {
 	}
 
 	public function lp_custom_style() {
+
+		if( is_admin() )
+			return;
+				
         /**
          * enqueue admin css
          */
-        wp_enqueue_style( 'lp_custom_style', LP_ERR_ASSETS_URL . 'lp-custom-css.css', null, VERSION, null );
+        wp_enqueue_style( 'lp_custom_style', LP_ERR_ASSETS_URL . 'lp-custom-css.css', null, null, null );
     }
 
     /**
@@ -31,8 +35,8 @@ class LearnPress_Quiz_Error_Rating {
     public function check_last_question( $quiz ) { 
     	
     	if( $quiz ) {
-    		// Get current question
-			$current_question_id = $quiz->get_viewing_question( 'id' );
+    		// Get current question    		
+			$current_question_id = ( LP_Request::get_int( 'question-id' ) != '' && LP_Request::get_int( 'question-id' ) != 0 ) ? LP_Request::get_int( 'question-id' ) : $quiz->get_viewing_question( 'id' );
 			$next_id 			 = $quiz->get_next_question( $current_question_id );
 
 			if( $next_id == '' )
@@ -99,11 +103,19 @@ class LearnPress_Quiz_Error_Rating {
 	 * @since    1.0.0
 	 */
 	public function add_answer_error_rating() {
+
+		if( is_admin() )
+			return;
+
+		global $wpdb;
 		// Get nave type and course,quiz & question IDs
-		$quiz        = LP_Global::course_item_quiz();
-		$course_id   =  $quiz->get_course_id();
-		$quiz_id     = $quiz->get_id();
-		echo 'QQQ ='.$question_id = $quiz->get_viewing_question( 'id' );
+		// $quiz        = LP_Global::course_item_quiz();
+		// $course_id   = !empty( $quiz ) ? $quiz->get_course_id() : 0;
+		// $quiz_id     = !empty( $quiz ) ? $quiz->get_id() : 0;
+		// $question_id = !empty( $quiz ) ? $quiz->get_viewing_question( 'id' ) : 0;
+		$course_id   = LP_Request::get_int( 'course-id' );
+  		$quiz_id     = LP_Request::get_int( 'quiz-id' );
+ 		$question_id = LP_Request::get_int( 'question-id' );
 		
 			
 		if( $course_id && $quiz_id )
@@ -117,6 +129,15 @@ class LearnPress_Quiz_Error_Rating {
 		
 		if( $is_last_q ){
 			learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), 'last_question_id',  $question_id );
+			$question_id = $wpdb->get_var( $wpdb->prepare("SELECT question_id FROM ".$wpdb->prefix."learnpress_quiz_questions WHERE quiz_id = %d ORDER BY question_order DESC limit 1", $quiz_id ) );
+		}
+		//echo $question_id; exit;
+		// Check if an answer is attempted or skipped. Selecting an answer is mandatory.
+		if( isset( $_REQUEST['question-data'] ) && $question_id && !isset( $_REQUEST[ 'learn-press-question-'.$question_id ] ) ) {	
+			$redirect = $quiz->get_question_link( $question_id );
+			$redirect = add_query_arg( 'q', 'error', $redirect );
+			wp_safe_redirect( $redirect );
+			exit;		
 		}
 
 		// Pass quiz data to meta update function

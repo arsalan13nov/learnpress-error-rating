@@ -6,6 +6,6 @@
      margin: 0; 
      padding: 0; 
 }
-.skip-question, .complete-quiz {
+.skip-question, .complete-quiz, #learn-press-finish-course {
     display: none;
 }
