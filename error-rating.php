@@ -66,6 +66,7 @@ function lp_error_rate_required_plugins() {
  * Core plugin class
  */
 require plugin_dir_path( __FILE__ ) . 'classes/class-lp-quiz-error-rating.php';
+require plugin_dir_path( __FILE__ ) . 'classes/class-lp-quiz-misc-functions.php';
 
 /**
  * Begins execution of the plugin.

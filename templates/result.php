@@ -32,10 +32,7 @@ if ( $quiz_data->is_review_questions() ) {
     <h3><?php _e( 'Your Result', 'learnpress' ); ?></h3>    
 
     <ul class="result-statistic">
-        <li class="result-statistic-field">
-            <label><?php echo _x( 'Time spend', 'quiz-result', 'learnpress' ); ?></label>
-            <p><?php echo $result['time_spend']; ?></p>
-        </li>
+      
         <li class="result-statistic-field">
             <label><?php echo _x( 'Questions', 'quiz-result', 'learnpress' ); ?></label>
             <p><?php echo $quiz->count_questions(); ?></p>
@@ -115,15 +112,17 @@ if ( $quiz_data->is_review_questions() ) {
                 ? '<strong style="color:green">Pass</strong>' : '<strong style="color:red">Fail</strong>';
 
                 if( $mean_deviation <= 5 && $mean_deviation >= -5 ) {
+
+                    learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), 'grade',  'passed' );
                     ?>
                     <style>
+                        .form-button-finish-course { display: inline-block; }                    
                         #learn-press-finish-course {
                             display: inline-block !important;
                         }
                     </style>
                     <?php
                 }
-
 
             } else {
                 $mean_deviation = 'Could not be calculated!';

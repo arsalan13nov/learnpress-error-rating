@@ -13,6 +13,22 @@ class LearnPress_Quiz_Error_Rating {
 		add_action( 'learn-press/user/quiz-finished', array( $this, 'add_answer_error_rating_last_question' ), 12, 3 );	
 		add_action( 'wp_enqueue_scripts', array( $this, 'lp_custom_style' ), 1001 );
 		add_action( 'learn-press/quiz/after-complete-button', array( $this, 'hide_complete_btn' ) );
+
+		// Resit Button
+		add_action( 'learn-press/quiz-buttons', array( $this, '_learn_press_resit_button' ), 5 );
+		
+	}
+
+	public function _learn_press_resit_button() {
+
+		$user      = LP_Global::user();
+		$quiz      = LP_Global::course_item_quiz();
+		$quiz_data = $user->get_quiz_data( $quiz->get_id() );
+		$user_quiz_grade = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), 'grade', true );
+		
+		if ( 'passed' != $user_quiz_grade ) {
+			LearnPress_Quiz_Misc::get_resit_course_enroll_button();
+		}
 		
 	}
 
