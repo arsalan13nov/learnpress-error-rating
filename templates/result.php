@@ -102,8 +102,8 @@ if ( $quiz_data->is_review_questions() ) {
                 $sum_of_positives = array_sum( $all_positives );
                 $sum_of_negatives = array_sum( $all_negatives );
 
-                $value_of_errors = $sum_of_positive + $sum_of_negatives;
-                $the_difference = $sum_of_positive - $sum_of_negatives;
+                $value_of_errors = $sum_of_positives + $sum_of_negatives;
+                $the_difference = $sum_of_positives - $sum_of_negatives;
                 $sys_error  = (float) ( $the_difference / $total_questions );
 
                 $diff_counter = abs( $neg_counters - $pos_counters );
@@ -111,7 +111,7 @@ if ( $quiz_data->is_review_questions() ) {
                 $quiz_result = ( $mean_deviation <= 5 && $mean_deviation >= -5 ) 
                 ? '<strong style="color:green">Pass</strong>' : '<strong style="color:red">Fail</strong>';
 
-                if( $mean_deviation <= 5 && $mean_deviation >= -5 ) {
+                if( $mean_deviation <= 5 && $mean_deviation >= -5 && $total_questions > 10 ) {
 
                     learn_press_update_user_item_meta( $quiz_data->get_user_item_id(), 'grade',  'passed' );
                     ?>

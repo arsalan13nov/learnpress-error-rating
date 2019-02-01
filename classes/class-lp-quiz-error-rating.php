@@ -23,6 +23,7 @@ class LearnPress_Quiz_Error_Rating {
 
 		$user      = LP_Global::user();
 		$quiz      = LP_Global::course_item_quiz();
+		$course = LP_Global::course();
 		$quiz_data = $user->get_quiz_data( $quiz->get_id() );
 		$user_quiz_grade = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), 'grade', true );
 		
