@@ -26,8 +26,15 @@ class LearnPress_Quiz_Error_Rating {
 		$quiz_data = $user->get_quiz_data( $quiz->get_id() );
 		$user_quiz_grade = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), 'grade', true );
 		
+		$quiz_questions = $quiz->get_questions();
+		$total_questions = count( $quiz_questions );
+		
+		if ( ! $user->has_quiz_status( 'completed', $quiz->get_id(), $course->get_id() ) || $total_questions < 11 ) {
+			return;
+		}
+		
 		if ( 'passed' != $user_quiz_grade ) {
-			LearnPress_Quiz_Misc::get_resit_course_enroll_button();
+			echo LearnPress_Quiz_Misc::get_resit_course_enroll_button();
 		}
 		
 	}
