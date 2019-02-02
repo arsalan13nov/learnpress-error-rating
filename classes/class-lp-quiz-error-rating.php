@@ -23,8 +23,16 @@ class LearnPress_Quiz_Error_Rating {
 
 		$user      = LP_Global::user();
 		$quiz      = LP_Global::course_item_quiz();
-		$course = LP_Global::course();
+		$course 	= LP_Global::course();
+
+		if( ! $user->can_access_course( $course->get_id() ) )
+			return;
+		
 		$quiz_data = $user->get_quiz_data( $quiz->get_id() );
+		
+		if( ! $quiz_data )
+			return;
+
 		$user_quiz_grade = learn_press_get_user_item_meta( $quiz_data->get_user_item_id(), 'grade', true );
 		
 		$quiz_questions = $quiz->get_questions();
@@ -33,7 +41,7 @@ class LearnPress_Quiz_Error_Rating {
 		if ( ! $user->has_quiz_status( 'completed', $quiz->get_id(), $course->get_id() ) || $total_questions < 11 ) {
 			return;
 		}
-		
+
 		if ( 'passed' != $user_quiz_grade ) {
 			echo LearnPress_Quiz_Misc::get_resit_course_enroll_button();
 		}
@@ -143,6 +151,9 @@ class LearnPress_Quiz_Error_Rating {
 		else
 			return false;
 
+		if( ! $quiz_data )
+			return;
+
 		// Check for last Q
 		$quiz                = LP_Global::course_item_quiz();
 		$is_last_q 			= $this->check_last_question( $quiz );
@@ -152,6 +163,7 @@ class LearnPress_Quiz_Error_Rating {
 			$question_id = $wpdb->get_var( $wpdb->prepare("SELECT question_id FROM ".$wpdb->prefix."learnpress_quiz_questions WHERE quiz_id = %d ORDER BY question_order DESC limit 1", $quiz_id ) );
 		}
 		
+
 		// Check if an answer is attempted or skipped. Selecting an answer is mandatory.
 		if( isset( $_REQUEST['question-data'] ) 
 			&& $question_id 
@@ -159,7 +171,7 @@ class LearnPress_Quiz_Error_Rating {
 			&& $_REQUEST['nav-type'] != 'prev-question'
 		) {	
 			$redirect = $quiz->get_question_link( $question_id );
-			$redirect = add_query_arg( 'q', 'error', $redirect );
+			$redirect = add_query_arg( 'q', 'error', $redirect );		
 			wp_safe_redirect( $redirect );
 			exit;		
 		}
